@@ -1,0 +1,45 @@
+html,
+text {
+  background-color: #354551;
+  color: white;
+  font-family: "Oxygen", sans-serif;
+  fill: white;
+}
+body {
+  background-color: #354551;
+  color: white;
+  font-family: "Oxygen", sans-serif;
+  font-size: 16px;
+}
+.domain,
+line {
+  stroke: white;
+}
+span.yes {
+  color: green;
+  font-weight: bold;
+}
+span.no {
+  color: tomato;
+  font-weight: bold;
+}
+g.sample1 > rect {
+  fill: steelblue;
+  opacity: 0.5;
+}
+g.sample2 > rect {
+  fill: tomato;
+  opacity: 0.5;
+}
+.sample1_label {
+  color: steelblue;
+}
+.sample2_label {
+  color: tomato;
+}
+td {
+  padding: 5px;
+}
+.sample1_label {
+  padding-right: 10px;
+}

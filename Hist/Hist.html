@@ -1,0 +1,196 @@
+<html>
+<head>
+	<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<svg height="250" width="500"></svg>
+<br>
+<table>
+<tr>
+	<th></th>
+	<th class="sample1_label">Sample 1</th>
+	<th class="sample2_label">Sample 2</th>
+</tr>
+<tr>
+	<td>
+	Mean:
+	</td>
+	<td>
+	<input type="number" value="0" step="0.1" min="-1" max="1" id="mean1"></input>
+	</td>
+	<td>
+	<input type="number" value="0.1" step="0.1" min="-1" max="1" id="mean2"></input>
+	</td>
+</tr>
+<tr><td>
+	Standard Deviation:
+	</td>
+	<td>
+	<input type="number" value="1" step="0.5" min="1" max="5" id="std1"></input>
+	</td>
+	<td>
+	<input type="number" value="1" step="0.5" min="1" max="5" id="std2"></input>
+	</td>
+</tr>
+<tr><td>
+	Number of Samples:
+	</td>
+	<td>
+	<input type="number" value="50" step="25" min="25" max="200" id="nSamples"></input>
+	</td>
+</tr>
+</table>
+<br>
+<span>P-value: <span id="pvalue"></span></span>
+<br>
+<br>
+<span>Significantly different? <span id="sig"></span></span>
+<br>
+<br>
+<button id="generate" onclick="update()">Generate </button>
+
+<script src="https://unpkg.com/simple-statistics@5.1.0/dist/simple-statistics.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/jstat@latest/dist/jstat.min.js"></script>
+<script src="https://d3js.org/d3.v4.min.js"></script>
+
+<script>
+var ids = ['mean1', 'mean2', 'std1', 'std2', 'nSamples'];
+var xMin = -3; // Min x-value plotted
+var xMax = 3; // Max x-value plotted
+var nBins = 30; // Number of bins
+var svgWidth = 500; // Width of SVG
+var svgHeight = 250; // Height of SVG
+var mean = 0; // Initial mean
+var std = 1; // Initial std
+var xScale = d3.scaleLinear()
+  	.range([0, svgWidth])
+    .domain([xMin * 1.1, xMax * 1.1]);
+var yScale = d3.scaleLinear()
+  	.range([0, svgHeight])
+    .domain([0, 25]);
+
+function setUp() {
+	var svg = d3.select('svg');
+	var binXs = genBinXs(xMin, xMax, nBins);
+	d3.select('svg')
+		.selectAll('g')
+		.data(['sample1', 'sample2'])
+		.enter()
+		.append('g')
+		.attr('class', function(d) {return d})
+		.selectAll('rect')
+		.data(binXs)
+		.enter()
+		.append('rect')
+		.attr('x', function(d, i) {return d})
+		.attr('width', binXs[1] - binXs[0]);
+
+	ids.forEach(function(id) {
+		d3.select('#' + id)
+			.on('update', update);
+	});
+	update();
+
+	var xAxis = d3.axisBottom()
+                  .scale(xScale)
+                  .ticks(5);  //Set rough # of ticks
+    svg.append("g")
+       .attr("transform", "translate(0,"+(svgHeight-30)+")")
+       .call(xAxis);
+}
+
+function update() {
+	var std1 = parseFloat(d3.select('#std1')._groups[0][0].value);
+	var mean1 = parseFloat(d3.select('#mean1')._groups[0][0].value);
+	var std2 = parseFloat(d3.select('#std2')._groups[0][0].value);
+	var mean2 = parseFloat(d3.select('#mean2')._groups[0][0].value);
+	var nSamples = parseFloat(d3.select('#nSamples')._groups[0][0].value);
+	var binXs = genBinXs(xMin, xMax, nBins);
+	var samples1 = genSamples(mean1, std1, nSamples);
+	var samples2 = genSamples(mean2, std2, nSamples);
+	var binHeights1 = genBinHeights(xMin, xMax, nBins, samples1);
+	var binHeights2 = genBinHeights(xMin, xMax, nBins, samples2);
+	// Plot Histograms
+	d3.select('g.sample1')
+		.selectAll('rect')
+		.transition()
+		.attr('y', function(d, i) {return (svgHeight-30) - binHeights1[i]})
+		.attr('height', function(d, i) {return binHeights1[i]});
+	d3.select('g.sample2')
+		.selectAll('rect')
+		.transition()
+		.attr('y', function(d, i) {return (svgHeight-30) - binHeights2[i]})
+		.attr('height', function(d, i) {return binHeights2[i]});
+	// Significance Test
+	var pval = ttest(samples1, samples2);
+	d3.select('#pvalue')
+		.html(pval.toFixed(2));	
+	if (pval < 0.05) {
+		d3.select('#sig')
+			.html('Yes')
+			.attr('class', 'yes');
+	} else {
+		d3.select('#sig')
+			.html('No')
+			.attr('class', 'no');
+	}
+}
+
+function calc_within_1std(samples, mean, std) {
+	var p = 0;
+  samples.forEach(function(d) {
+  	if ((d > (mean - std)) & (d < (mean + std))) {
+    	p++;
+    }
+  });
+  return Math.round(1000 * p / samples.length) / 10;
+}
+
+function genSamples(mean, std, nSamples) {
+	var samples = [];
+	for (i=0; i < nSamples; ++i) {
+  	samples[i] = jStat.normal.sample( mean , std ) ;
+  }
+  return samples
+}
+
+function genBinXs(xMin, xMax, nBins) {
+	var binWidth = (xMax - xMin) / nBins;
+  var xVals = [];
+	for (var i=0; i<nBins; i++) {
+  	xVals[i] = xScale(xMin + (i * binWidth));
+  }
+  return xVals;
+}
+
+function genBinHeights(xMin, xMax, nBins, samples) {
+	var binWidth = (xMax - xMin) / nBins;
+  var heights = [];
+	for (var i=0; i<nBins; i++) {
+  	var b = 0;
+    samples.forEach(function(x) {
+    	var binLeft = xMin + (i * binWidth);
+      var binRight = xMin + ((i + 1) * binWidth);
+    	if ((x >= binLeft) & (x < binRight)) {
+      	b++;
+      }
+    });
+  	heights[i] = yScale(b)
+  }
+  return heights
+}
+
+function ttest(s1 , s2) {
+	tstat = ss.tTestTwoSample(s1, s2);
+	dof = s1.length + s2.length - 2;
+	if (tstat < 0) {
+		return jStat.studentt.cdf(tstat, dof) * 2
+	} else {
+		return (1 - jStat.studentt.cdf(tstat, dof)) * 2
+	}
+}
+
+setUp();
+</script>
+</body>
+</html>

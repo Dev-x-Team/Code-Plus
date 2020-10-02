@@ -1,0 +1,16 @@
+{
+  "name": "codey",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "firebase": "^7.19.1",
+    "firebase-tools": "^8.9.2"
+  }
+}
